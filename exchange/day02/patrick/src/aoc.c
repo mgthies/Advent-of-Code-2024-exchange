@@ -32,21 +32,47 @@ char* solve(char *path) {
 	uint64_t result = 0;
 	for (int i = 0; i < data->list_size; ++i) {
 		struct data_entry *e = data->entries + i;
+		struct data_entry orig;
+		if (part == 2) {
+			orig.values = malloc(sizeof(int) * e->value_count);
+			orig.value_count = e->value_count;
+			memcpy(orig.values, e->values, sizeof(int) * orig.value_count);
+		}
+		int last_remove = -1;
 		printf("[%.2d]:", i);
 		for (int ii = 0; ii < e->value_count; ++ii) {
 			printf(" %d", e->values[ii]);
 		}
+		retry: ;
 		if (e->value_count <= 1) {
 			abort();
 		}
+		int ii = 2;
 		if (e->values[0] == e->values[1]) {
-			unsafe: puts("    U");
+			unsafe: if (part == 2) {
+				e->value_count = orig.value_count - 1;
+				if (last_remove < 0 || last_remove < orig.value_count) {
+					if (last_remove < 0) {
+						last_remove = ii -= 2;
+					} else {
+						ii = ++last_remove;
+					}
+					memcpy(e->values, orig.values, sizeof(int) * ii);
+					memcpy(e->values + ii, orig.values + ii + 1,
+							sizeof(int) * (orig.value_count - ii));
+					goto retry;
+				}
+				free(e->values);
+				e->values = orig.values;
+				e->value_count = orig.value_count;
+			}
+			puts("    U");
 			continue;
 		} else if (e->values[0] > e->values[1]) {
 			if (e->values[0] - e->values[1] > 3) {
 				goto unsafe;
 			}
-			for (int ii = 2; ii < e->value_count; ++ii) {
+			for (ii = 2; ii < e->value_count; ++ii) {
 				if (e->values[ii - 1] <= e->values[ii]) {
 					goto unsafe;
 				}
@@ -58,7 +84,7 @@ char* solve(char *path) {
 			if (e->values[1] - e->values[0] > 3) {
 				goto unsafe;
 			}
-			for (int ii = 2; ii < e->value_count; ++ii) {
+			for (ii = 2; ii < e->value_count; ++ii) {
 				if (e->values[ii - 1] >= e->values[ii]) {
 					goto unsafe;
 				}
@@ -67,8 +93,17 @@ char* solve(char *path) {
 				}
 			}
 		}
-		puts(" -- S");
+		if (part == 2 && last_remove >= 0) {
+			printf(" -- S (REM=%d)\n", last_remove);
+		} else {
+			puts(" -- S");
+		}
 		result++;
+		if (part == 2) {
+			free(e->values);
+			e->values = orig.values;
+			e->value_count = orig.value_count;
+		}
 	}
 	return u64toa(result);
 }
