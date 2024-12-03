@@ -51,26 +51,121 @@ static int get_num(char **c, uint64_t *a, char end) {
 	return 0;
 }
 
+static char* low(char *a, char *b) {
+	if (!a) {
+		return b;
+	}
+	if (!b) {
+		return a;
+	}
+	if (a < b) {
+		return a;
+	}
+	return b;
+}
+
+int print_invalid = 1;
+int print_color = 1;
+
+static char* strstr3(char *heystack, char *needle, char *needlep2_a,
+		char *needlep2_b) {
+	char *result0 = strstr(heystack, needle);
+	if (part == 1) {
+		ret:
+		if (print_invalid) {
+			printf("%.*s", (int) (result0 - heystack), heystack);
+		}
+		return result0;
+	}
+	char *result1 = strstr(heystack, needlep2_a);
+	char *result2 = strstr(heystack, needlep2_b);
+	if (!result0) {
+		result0 = low(result1, result2);
+		goto ret;
+	}
+	if (!result1) {
+		result0 = low(result0, result2);
+		goto ret;
+	}
+	if (!result2) {
+		result0 = low(result0, result1);
+		goto ret;
+	}
+	if (result0 < result1) {
+		result0 = low(result0, result2);
+		goto ret;
+	}
+	result0 = low(result1, result2);
+	goto ret;
+}
+
 char* solve(char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
+	int enabled = 105; // 88802350
+	                   // 22386235
 	for (int i = 0; i < data->list_size; ++i) {
 		struct data_entry *e = data->entries + i;
 		uint64_t tres = 0;
-		for (char *c = strstr(e->line, "mul("); c; c = strstr(c, "mul(")) {
+		for (char *c = strstr3(e->line, "mul(", "do()", "don't()"); c; c =
+				strstr3(c, "mul(", "do()", "don't()")) {
+			if (part == 2) {
+				if (!memcmp(c, "do()", strlen("do()"))) {
+					if (print_color) {
+						printf("\033[32mdo()\033[39m");
+					} else {
+						printf("do()");
+					}
+					enabled = 82;
+					c += strlen("do()");
+					continue;
+				}
+				if (!memcmp(c, "don't()", strlen("don't()"))) {
+					if (print_color) {
+						printf("\033[31mdon't()\033[39m");
+					} else {
+						printf("don't()");
+					}
+					enabled = 0;
+					c += strlen("don't()");
+					continue;
+				}
+			}
+			char *start_c = c;
 			c += strlen("mul(");
 			uint64_t a;
 			if (get_num(&c, &a, ',')) {
+				inval: if (print_invalid) {
+					printf("%.*s", (int) (c - start_c), start_c);
+				}
 				continue;
 			}
 			c++;
 			uint64_t b;
 			if (get_num(&c, &b, ')')) {
-				continue;
+				goto inval;
 			}
-			tres += a * b;
+			c++;
+			if (!enabled) {
+				if (print_color) {
+					printf("\033[9;38;2;127;127;127mmul(%d,%d)\033[29;39m", a, b);
+				} else {
+					printf("mul(%d,%d)", a, b);
+				}
+			} else {
+				tres += a * b;
+				if (print_color) {
+					printf("\033[36mmul(%d,%d)\033[39m", a, b);
+				} else {
+					printf("mul(%d,%d)", a, b);
+				}
+			}
 		}
-		printf("%-128s ==> %s\n", e->line, u64toa(tres));
+		int pad_len = 128 - strlen(e->line);
+		if (pad_len < 0) {
+			pad_len = 0;
+		}
+		printf("%-*s ==> %s\n", pad_len, "", u64toa(tres));
 		result += tres;
 	}
 	return u64toa(result);
