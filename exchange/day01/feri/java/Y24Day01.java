@@ -13,7 +13,7 @@ import java.util.Set;
  */
 public class Y24Day01 {
 
-	
+
 	
 	public static void mainPart1(String inputfile) throws FileNotFoundException {
 		
