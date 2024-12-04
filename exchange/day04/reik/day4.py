@@ -11,7 +11,7 @@ def find_word(matrix, word):
     ]
     for x, y in matrix:
         for dx, dy in directions:
-            if all(matrix.get((x + dx * i, y + dy * i), '') == word[i] for i in range(len(word))):
+            if all(matrix.get((x + dx * i, y + dy * i), '') == char for i, char in enumerate(word)):
                 yield x, y
 
 def find_cross(matrix):
