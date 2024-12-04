@@ -35,7 +35,7 @@ public class Y24Day04 {
 			}
 			return word.toString();
 		}
-		public int countOccurrence(String searchWord) {
+		public int countWordOccurrence(String searchWord) {
 			int result = 0;
 			for (int y=0; y<numRows; y++) {
 				for (int x=0; x<numCols; x++) {
@@ -44,11 +44,39 @@ public class Y24Day04 {
 							if ((dx==0) && (dy==0)) {
 								continue;
 							}
-							String word = getWord(x,y,searchWord.length(),dy, dx);
+							String word = getWord(x,y,searchWord.length(),dx, dy);
 							if (word.equals(searchWord)) {
 								result++;
 							}
 						}
+					}
+				}
+			}
+			return result;
+		}
+		public int countMASOccurrence() {
+			int result = 0;
+			for (int y=0; y<numRows; y++) {
+				for (int x=0; x<numCols; x++) {
+					String word1 = getWord( x-1,y-1, 3,  1,1  );
+					String word2 = getWord( x-1,y+1, 3,  1,-1 );
+					String word3 = getWord( x+1,y-1, 3, -1,1  );
+					String word4 = getWord( x+1,y+1, 3, -1,-1 );
+					int cntMAS=0;
+					if (word1.equals("MAS")) {
+						cntMAS++;
+					}
+					if (word2.equals("MAS")) {
+						cntMAS++;
+					}
+					if (word3.equals("MAS")) {
+						cntMAS++;
+					}
+					if (word4.equals("MAS")) {
+						cntMAS++;
+					}
+					if (cntMAS==2) {
+						result++;
 					}
 				}
 			}
@@ -84,13 +112,26 @@ public class Y24Day04 {
 				matrix.addRow(line);
 			}
 		}
-		int countXMAS = matrix.countOccurrence("XMAS");
+		int countXMAS = matrix.countWordOccurrence("XMAS");
 		System.out.println("The word XMAS occurrs "+countXMAS+" times"); 
 	}
 
 	
 
 	public static void mainPart2(String inputfile) throws FileNotFoundException {
+		
+		CharMatrix matrix = new CharMatrix();
+		try (Scanner scanner = new Scanner(new File(inputfile))) {
+			while (scanner.hasNext()) {
+				String line = scanner.nextLine().trim();
+				if (line.isBlank()) {
+					continue;
+				}
+				matrix.addRow(line);
+			}
+		}
+		int countMAS = matrix.countMASOccurrence();
+		System.out.println("a cross MAS occurrs "+countMAS+" times"); 
 	}
 
 
@@ -102,8 +143,8 @@ public class Y24Day04 {
 		System.out.println("---------------");
 		System.out.println();
 		System.out.println("--- PART II ---");
-		mainPart2("exchange/day04/feri/input-example.txt");
-//		mainPart2("exchange/day04/feri/input.txt");
+//		mainPart2("exchange/day04/feri/input-example.txt");
+		mainPart2("exchange/day04/feri/input.txt");
 		System.out.println("---------------");
 	}
 
