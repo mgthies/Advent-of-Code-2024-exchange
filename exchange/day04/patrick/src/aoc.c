@@ -128,6 +128,28 @@ static uint64_t count_xmas(struct data *data, int c, int l, char *line,
 	return result;
 }
 
+static uint64_t count_x_mas(struct data *data, int c, int l, char *line,
+		uint64_t line_len, char **debug) {
+	if (c && l && data->list_size - c > 1 && line_len - l > 1) {
+		char ul = data->entries[l - 1].line[c - 1];
+		char ur = data->entries[l - 1].line[c + 1];
+		char dl = data->entries[l + 1].line[c - 1];
+		char dr = data->entries[l + 1].line[c + 1];
+#define moa(c) (c == 'M' || c == 'S')
+		if (moa(ul) && moa(ur) && moa(dl) && moa(dr)) {
+			if (ul != dr && ur != dl) {
+				debug[l][c] += 0x40;
+				debug[l + 1][c + 1]++;
+				debug[l + 1][c - 1]++;
+				debug[l - 1][c + 1]++;
+				debug[l - 1][c - 1]++;
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
 char* solve(char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0, line_len = strlen(data->entries[0].line);
@@ -139,12 +161,16 @@ char* solve(char *path) {
 	for (int l = 0; l < data->list_size; ++l) {
 		char *line = data->entries[l].line;
 		for (int c = 0; c < line_len; ++c) {
-			if (line[c] == 'X') {
-				result += count_xmas(data, c, l, line, line_len, "XMAS",
-						buf);
-			} else if (line[c] == 'S') {
-				result += count_xmas(data, c, l, line, line_len, "SAMX",
-						buf);
+			if (part == 1) {
+				if (line[c] == 'X') {
+					result += count_xmas(data, c, l, line, line_len, "XMAS",
+							buf);
+				} else if (line[c] == 'S') {
+					result += count_xmas(data, c, l, line, line_len, "SAMX",
+							buf);
+				}
+			} else if (part == 2 && line[c] == 'A') {
+				result += count_x_mas(data, c, l, line, line_len, buf);
 			}
 		}
 	}
@@ -161,9 +187,9 @@ char* solve(char *path) {
 //					}
 //				}
 				if (print_color) {
-					if (lbuf[c] == 1 && (!c || lbuf[c - 1] != 1)) {
+					if (lbuf[c] < 0x40 && (!c || lbuf[c - 1] != 1)) {
 						fputs("\033[32m", stdout);
-					} else if (lbuf[c] != 1 && (!c || lbuf[c - 1] <= 1)) {
+					} else if (lbuf[c] >= 0x40 && (!c || lbuf[c - 1] <= 1)) {
 						fputs("\033[31m", stdout);
 					}
 				}
