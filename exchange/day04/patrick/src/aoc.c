@@ -7,10 +7,6 @@
 
 #include "aoc.h"
 
-#include <bits/stdint-intn.h>
-#include <bits/stdint-uintn.h>
-#include <bits/types/clock_t.h>
-#include <bits/types/FILE.h>
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
