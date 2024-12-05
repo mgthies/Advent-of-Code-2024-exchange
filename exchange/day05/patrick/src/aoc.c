@@ -124,6 +124,8 @@ char* solve(char *path) {
 		} else if (!valid_list) {
 			result += l->pages[l->page_count / 2];
 			puts("");
+		} else {
+			puts(" -- valid");
 		}
 		invalid_page: hs_clear(&visited);
 		continue;
@@ -297,6 +299,10 @@ struct data* read_data(const char *path) {
 			}
 			perror("getline failed");
 			fflush(0);
+			abort();
+		}
+		if (strlen(line_buf) != s) {
+			fprintf(stderr, "\\0 character in line!");
 			abort();
 		}
 		result = parse_line(result, line_buf);
