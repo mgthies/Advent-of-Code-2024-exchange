@@ -76,6 +76,7 @@ char* solve(char *path) {
 	struct data *data = read_data(path);
 	uint64_t result = 0;
 	for (list *l = data->lists; l < data->lists + data->list_count; ++l) {
+		int valid_list = 1;
 		printf("list: ");
 		for (page *p = l->pages; p < l->pages + l->page_count; p++) {
 			if (p == l->pages) {
@@ -84,6 +85,7 @@ char* solve(char *path) {
 				printf(",%d", *p);
 			}
 		}
+		retry: ;
 		struct hashset visited = { .equal = p_eq, .hash = p_hs };
 		if (!(l->page_count & 1)) {
 			fprintf(stderr, "page count is not odd!\n");
@@ -94,8 +96,19 @@ char* solve(char *path) {
 			if (r) {
 				for (int i = 0; i < r->after_pages.page_count; ++i) {
 					if (hs_get(&visited, r->after_pages.pages + i)) {
-						printf(" -- invalid (rule %d|%d)\n", r->before_page,
-								r->after_pages.pages[i]);
+						printf(" -- invalid (rule %d|%d)%s", r->before_page,
+								r->after_pages.pages[i], part == 1 ? "\n" : "");
+						if (part == 2) {
+							valid_list = 0;
+							hs_clear(&visited);
+							for (page *p2 = l->pages; 105; p2++) {
+								if (*p2 == r->after_pages.pages[i]) {
+									*p = r->after_pages.pages[i];
+									*p2 = r->before_page;
+									goto retry;
+								}
+							}
+						}
 						goto invalid_page;
 					}
 				}
@@ -105,8 +118,13 @@ char* solve(char *path) {
 				abort();
 			}
 		}
-		result += l->pages[l->page_count / 2];
-		puts(" -- valid");
+		if (part == 1) {
+			result += l->pages[l->page_count / 2];
+			puts(" -- valid");
+		} else if (!valid_list) {
+			result += l->pages[l->page_count / 2];
+			puts("");
+		}
 		invalid_page: hs_clear(&visited);
 		continue;
 	}
