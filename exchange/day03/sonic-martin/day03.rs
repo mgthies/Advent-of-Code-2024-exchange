@@ -6,7 +6,7 @@ fn main() -> Result<(), String> {
     // Arg parsing
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        return Err(String::from("Usage: cargo run --bin day02 INPUT"));
+        return Err(String::from("Usage: cargo run --bin day03 INPUT"));
     }
 
     // Load file into string
