@@ -61,6 +61,15 @@ public class Y24Day06 {
 			visitedPositions = null;
 			ticks = 0;
 		}
+		public Lab(Lab other) {
+			this.rows = new ArrayList<>(other.rows);
+			this.maxX = other.maxX;
+			this.maxY = other.maxY;
+			this.guardPos = other.guardPos;
+			this.guardDir = other.guardDir;
+			this.visitedPositions = new HashMap<>(other.visitedPositions);
+			this.ticks = other.ticks;
+		}
 		public void addRow(String row) {
 			rows.add(row);
 			maxX = row.length();
@@ -75,11 +84,18 @@ public class Y24Day06 {
 			}
 			return rows.get(y).charAt(x);
 		}
+		public boolean isFree(int x, int y) {
+			return get(x, y) == '.';
+		}
 		public boolean isBlocked(Pos pos) {
 			return get(pos) == '#';
 		}
 		public boolean isOutside(Pos pos) {
 			return get(pos) == '+';
+		}
+		public boolean isLoop() {
+			Character c = visitedPositions.get(guardPos); 
+			return (c != null) && (c == DIR_CHARS[guardDir]);
 		}
 		public void findGuardPos() {
 			for (int y=0; y<maxY; y++) {
@@ -103,6 +119,9 @@ public class Y24Day06 {
 				nextPos = guardPos.move(guardDir);
 			}
 			guardPos = nextPos;
+			if (isLoop()) {
+				return false;
+			}
 			if (isOutside(guardPos)) {
 				return false;
 			}
@@ -125,6 +144,11 @@ public class Y24Day06 {
 				result.append('\n');
 			}
 			return result.toString();
+		}
+		public void set(int x, int y, char c) {
+			String row = rows.get(y);
+			String newRow = row.substring(0,x) + c + row.substring(x+1);
+			rows.set(y, newRow);
 		}
 	}
 	
@@ -153,6 +177,34 @@ public class Y24Day06 {
 
 	public static void mainPart2(String inputfile) throws FileNotFoundException {
 		
+		Lab lab = new Lab();
+		try (Scanner scanner = new Scanner(new File(inputfile))) {
+			while (scanner.hasNext()) {
+				String line = scanner.nextLine().trim();
+				if (line.isBlank()) {
+					continue;
+				}
+				lab.addRow(line);
+			}
+		}
+		lab.findGuardPos();
+		int countLoops = 0;
+		for (int y=0; y<lab.maxY; y++) {
+			for (int x=0; x<lab.maxX; x++) {
+				if (lab.isFree(x,y)) {
+					Lab testLab = new Lab(lab);
+//					System.out.println("BEFORE "+new Pos(x,y)+": "+testLab);
+					testLab.set(x,y,'#');
+//					System.out.println("AFTER "+new Pos(x,y)+": "+testLab);
+					while (testLab.tick()) {
+					}
+					if (testLab.isLoop()) {
+						countLoops++;
+					}
+				}
+			}
+		}
+		System.out.println("LOOPS: "+countLoops);
 	}
 
 
@@ -164,8 +216,8 @@ public class Y24Day06 {
 		System.out.println("---------------");
 		System.out.println();
 		System.out.println("--- PART II ---");
-		mainPart2("exchange/day06/feri/input-example.txt");
-//		mainPart2("exchange/day06/feri/input.txt");
+//		mainPart2("exchange/day06/feri/input-example.txt");
+		mainPart2("exchange/day06/feri/input.txt");
 		System.out.println("---------------");
 	}
 
