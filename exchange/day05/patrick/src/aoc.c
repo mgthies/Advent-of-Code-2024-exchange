@@ -55,22 +55,6 @@ static uint64_t p_hs(const void *a) {
 static int p_eq(const void *a, const void *b) {
 	return *((page*) a) == *((page*) b);
 }
-static void* new_page(void *param, void *element) {
-	page *result = malloc(sizeof(page));
-	*result = *(page*) element;
-	return result;
-}
-
-static int p_cmp(const void *a, const void *b) {
-	const page p0 = *(const page*) a, p1 = *(const page*) b;
-	if (p0 < p1) {
-		return 1;
-	}
-	if (p0 > p1) {
-		return -1;
-	}
-	return 0;
-}
 
 char* solve(char *path) {
 	struct data *data = read_data(path);
@@ -124,6 +108,8 @@ char* solve(char *path) {
 		} else if (!valid_list) {
 			result += l->pages[l->page_count / 2];
 			puts("");
+		} else {
+			puts(" -- valid");
 		}
 		invalid_page: hs_clear(&visited);
 		continue;
@@ -297,6 +283,10 @@ struct data* read_data(const char *path) {
 			}
 			perror("getline failed");
 			fflush(0);
+			abort();
+		}
+		if (strlen(line_buf) != s) {
+			fprintf(stderr, "\\0 character in line!");
 			abort();
 		}
 		result = parse_line(result, line_buf);
