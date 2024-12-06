@@ -7,10 +7,6 @@
 
 #include "aoc.h"
 
-#include <bits/stdint-intn.h>
-#include <bits/stdint-uintn.h>
-#include <bits/types/clock_t.h>
-#include <bits/types/FILE.h>
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -31,44 +27,6 @@ struct data {
 	size_t list_size;
 	size_t list_max_size;
 };
-
-static int get_num(char **c, uint64_t *a, char end) {
-	if (!isdigit(**c)) {
-		return 31;
-	}
-	*a = **c - '0';
-	if (isdigit(*(++*c))) {
-		*a = *a * 10 + **c - '0';
-	} else if (**c != end) {
-		return 37;
-	} else {
-		return 0;
-	}
-	if (isdigit(*(++*c))) {
-		*a = *a * 10 + **c - '0';
-	} else if (**c != end) {
-		return 42;
-	} else {
-		return 0;
-	}
-	if (*(++*c) != end) {
-		return 45;
-	}
-	return 0;
-}
-
-static char* low(char *a, char *b) {
-	if (!a) {
-		return b;
-	}
-	if (!b) {
-		return a;
-	}
-	if (a < b) {
-		return a;
-	}
-	return b;
-}
 
 static int print_invalid = 0;
 static int print_color = 0;
