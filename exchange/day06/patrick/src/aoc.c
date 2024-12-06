@@ -247,6 +247,12 @@ uint64_t simulate(struct data *data) {
 			e->guard = guard;
 			e->dir = dirc;
 			if (tfind(e, &tree, te_compar)) {
+				free(e);
+#ifdef _GNU_SOURCE
+				tdestroy(tree, free);
+#else
+				twalk(&tree, te_free);
+#endif
 				return 0;
 			}
 			tsearch(e, &tree, te_compar);
