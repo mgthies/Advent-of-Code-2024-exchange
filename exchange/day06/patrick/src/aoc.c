@@ -5,6 +5,12 @@
  *      Author: pat
  */
 
+/* needed for the tdestroy function.
+ * if not present twalk is used, to free the tree tree entries
+ * this does not free the nodes and thus creates a memory leak.
+ * if this is acceptable and _GNU_SOURCE does not work just remove it. */
+#define _GNU_SOURCE
+
 #include "aoc.h"
 
 #include <ctype.h>
@@ -15,6 +21,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <errno.h>
+#include <search.h>
 
 #define DAY 06
 int part = 2;
@@ -30,6 +37,15 @@ struct pos {
 	int line;
 	int col;
 };
+
+static void print(FILE *str, struct data *data, struct pos guard,
+		uint64_t result) {
+	fprintf(str, "guard: (%d|%d) (result=%s)\n", guard.col, guard.line,
+			u64toa(result));
+	for (int l = 0; l < data->line_count; ++l) {
+		fprintf(str, "%s\n", data->lines[l]);
+	}
+}
 
 static struct pos find_guard(struct data *data) {
 	struct pos result = { .line = -1, .col = -1 };
@@ -59,6 +75,7 @@ static struct pos find_guard(struct data *data) {
 		return result;
 	}
 	fprintf(stderr, "no guard!\n");
+	print(stderr, data, result, 0);
 	abort();
 }
 
@@ -83,34 +100,118 @@ static inline struct pos get_dir(char c) {
 	return result;
 }
 
-static void print(struct data *data, struct pos guard, uint64_t result) {
-	printf("guard: (%d|%d) (result=%s)\n", guard.col, guard.line,
-			u64toa(result));
-	for (int l = 0; l < data->line_count; ++l) {
-		puts(data->lines[l]);
+static inline char get_X(char dirc) {
+	if (part == 1) {
+		return 'X';
+	}
+	switch (dirc) {
+	case '>':
+		return 'd';
+	case '<':
+		return 'a';
+	case '^':
+		return 'w';
+	case 'v':
+		return 's';
+	default:
+		abort();
 	}
 }
 
-char* solve(char *path) {
-	struct data *data = read_data(path);
+/* set at the begin of solve:
+ * if part == 1: true
+ * if part == 2: false */
+int print_steps;
+
+struct tree_entry {
+	struct pos guard;
+	char dir;
+};
+
+int te_compar(const void *a, const void *b) {
+	const struct tree_entry *ta = a, *tb = b;
+	if (ta->guard.line > tb->guard.line) {
+		return 1;
+	}
+	if (ta->guard.line < tb->guard.line) {
+		return -1;
+	}
+	if (ta->guard.col > tb->guard.col) {
+		return 1;
+	}
+	if (ta->guard.col < tb->guard.col) {
+		return -1;
+	}
+	return (int) ta->dir - tb->dir;
+}
+#ifndef _GNU_SOURCE
+void te_free(const void *a, VISIT value, int level) {
+	free((void*) a);
+}
+#endif
+
+uint64_t simulate(struct data *data) {
 	uint64_t result = 0;
 	struct pos guard = find_guard(data);
 	char dirc = data->lines[guard.line][guard.col];
 	struct pos dir = get_dir(dirc);
-	print(data, guard, result);
+	char X = get_X(dirc);
+	int turn_count = 0;
+	int trapped = 0;
+	if (print_steps) {
+		print(stdout, data, guard, result);
+	}
+	void *tree = 0;
 	while (51) {
-		data->lines[guard.line][guard.col] = 'X';
+		data->lines[guard.line][guard.col] = X;
 		guard.line += dir.line;
 		guard.col += dir.col;
 		if (guard.line >= data->line_count || guard.line < 0
 				|| guard.col >= data->line_length || guard.col < 0) {
-			return u64toa(result + 1);
+			if (print_steps) {
+				print(stdout, data, guard, result);
+			}
+			if (part == 2) {
+#ifdef _GNU_SOURCE
+				tdestroy(tree, free);
+#else
+				twalk(&tree, te_free);
+#endif
+			}
+			return result + 1;
 		}
-		switch (data->lines[guard.line][guard.col]) {
+		char nextc = data->lines[guard.line][guard.col];
+		switch (nextc) {
 		case '.':
+			if (part == 2) {
+//				if (turn_count == 2) {
+//					return 0;
+//				}
+				turn_count = 0;
+			}
 			result++;
-			/* no break */
+			data->lines[guard.line][guard.col] = dirc;
+			break;
+		case 'w':
+		case 'a':
+		case 's':
+		case 'd':
+			if (part == 1) {
+				abort();
+			}
+//			if (nextc == X) {
+//				return 0;
+//			}
+//			if (turn_count == 2) {
+//				return 0;
+//			}
+			turn_count = 0;
+			data->lines[guard.line][guard.col] = dirc;
+			break;
 		case 'X':
+			if (part == 2) {
+				abort();
+			}
 			data->lines[guard.line][guard.col] = dirc;
 			break;
 		case '#':
@@ -130,16 +231,99 @@ char* solve(char *path) {
 			default:
 				abort();
 			}
+//			if (++turn_count == 4) {
+//				return 0;
+//			}
+//			if (guard3.line == guard.line && guard3.col == guard.col) {
+//				return 0;
+//			}
+//			guard3 = guard2;
+//			guard2 = guard1;
+//			guard1 = guard0;
+//			guard0 = guard;
 			guard.line -= dir.line;
 			guard.col -= dir.col;
+			struct tree_entry *e = malloc(sizeof(struct tree_entry));
+			e->guard = guard;
+			e->dir = dirc;
+			if (tfind(e, &tree, te_compar)) {
+				return 0;
+			}
+			tsearch(e, &tree, te_compar);
 			data->lines[guard.line][guard.col] = dirc;
 			dir = get_dir(dirc);
-			print(data, guard, result);
+			X = get_X(dirc);
+			if (print_steps) {
+				print(stdout, data, guard, result);
+			}
 			break;
 		default:
 			abort();
 		}
 	}
+}
+/*
+ *  #
+ *   2#
+ * #01
+ *   #
+ */
+
+char* solve(char *path) {
+	struct data *data = read_data(path);
+	struct data *orig = data;
+	if (part == 2) {
+		orig = malloc(sizeof(struct data));
+		orig->lines = malloc(sizeof(char*) * data->line_count);
+		orig->max_line_count = data->line_count;
+		orig->line_count = data->line_count;
+		orig->line_length = data->line_length;
+		for (int l = 0; l < orig->line_count; ++l) {
+			orig->lines[l] = strdup(data->lines[l]);
+		}
+		print_steps = 0;
+	} else {
+		print_steps = 1;
+	}
+	uint64_t Xs = simulate(orig);
+	if (part == 1) {
+		return u64toa(Xs);
+	}
+	Xs--;
+	struct data *work = malloc(sizeof(struct data));
+	work->lines = malloc(sizeof(char*) * data->line_count);
+	work->max_line_count = data->line_count;
+	work->line_count = data->line_count;
+	work->line_length = data->line_length;
+	for (int l = 0; l < work->line_count; ++l) {
+		work->lines[l] = malloc(data->line_length + 1);
+	}
+	//data is empty
+	//orig holds the result of the original simulation
+	//work is the current trial
+	uint64_t result = 0;
+	struct pos pos = { .line = 0, .col = 0 };
+	for (uint64_t cnt = 0; cnt < Xs; pos.line++) {
+		for (pos.col = 0; pos.col < orig->line_length; pos.col++) {
+			char c = orig->lines[pos.line][pos.col];
+			if (c == 'w' || c == 'a' || c == 's' || c == 'd') {
+				if (data->lines[pos.line][pos.col] != '.') {
+					get_X(data->lines[pos.line][pos.col]);	// start position
+					continue;
+				}
+				printf("start %ds simulation\n", ++cnt);
+				for (int l = 0; l < work->line_count; ++l) {
+					memcpy(work->lines[l], data->lines[l],
+							data->line_length + 1);
+				}
+				work->lines[pos.line][pos.col] = '#';
+				if (!simulate(work)) {
+					result++;
+				}
+			}
+		}
+	}
+	return u64toa(result);
 }
 
 static struct data* parse_line(struct data *data, char *line) {
